@@ -39,8 +39,6 @@ Kurallara uymayan istekler `400 Bad Request` ve bir hata mesajıyla reddedilir.
 4. F5 ile çalıştır
 5. Tarayıcıda açılan sayfada kayıt ol, giriş yap ve skor ekle
 
-Not: Geliştirme aşamasında veritabanı her açılışta sıfırlanır.
-
 ## Endpoint'ler
 
 | Yöntem | Adres | Açıklama |

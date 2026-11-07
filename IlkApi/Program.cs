@@ -33,9 +33,6 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SkorDb>();
-    // GEÇİCİ: Test aşamasında her açılışta veritabanını sıfırla. Sistem kurulunca bu satır silinecek.
-    db.Database.EnsureDeleted();
-
     db.Database.EnsureCreated();
 }
 
