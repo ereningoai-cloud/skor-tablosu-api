@@ -19,6 +19,20 @@ using (var scope = app.Services.CreateScope())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+static string? Dogrula(Skor skor)
+{
+    if (string.IsNullOrWhiteSpace(skor.Oyuncu))
+        return "Oyuncu adı boş olamaz.";
+
+    if (skor.Oyuncu.Length > 30)
+        return "Oyuncu adı en fazla 30 karakter olabilir.";
+
+    if (skor.Puan < 0)
+        return "Puan negatif olamaz.";
+
+    return null;
+}
+
 app.MapGet("/merhaba", () => "Merhaba dünya, ben geri döndüm!");
 
 app.MapGet("/skorlar", async (SkorDb db) =>
@@ -40,7 +54,10 @@ app.MapGet("/skorlar/en-yuksek", async (SkorDb db) =>
 
 app.MapPost("/skorlar", async (Skor yeniSkor, SkorDb db) =>
 {
-    var skor = new Skor(0, yeniSkor.Oyuncu, yeniSkor.Puan);
+    var hata = Dogrula(yeniSkor);
+    if (hata is not null) return Results.BadRequest(hata);
+
+    var skor = new Skor(0, yeniSkor.Oyuncu.Trim(), yeniSkor.Puan);
     db.Skorlar.Add(skor);
     await db.SaveChangesAsync();
     return Results.Created($"/skorlar/{skor.Id}", skor);
@@ -58,10 +75,13 @@ app.MapDelete("/skorlar/{id}", async (int id, SkorDb db) =>
 
 app.MapPut("/skorlar/{id}", async (int id, Skor guncelSkor, SkorDb db) =>
 {
+    var hata=Dogrula(guncelSkor);
+    if (hata is not null) return Results.BadRequest(hata);
+
     var skor = await db.Skorlar.FindAsync(id);
     if (skor is null) return Results.NotFound();
 
-    db.Entry(skor).CurrentValues.SetValues(new Skor(id, guncelSkor.Oyuncu, guncelSkor.Puan));
+    db.Entry(skor).CurrentValues.SetValues(new Skor(id, guncelSkor.Oyuncu.Trim(), guncelSkor.Puan));
     await db.SaveChangesAsync();
     return Results.NoContent();
 });

@@ -9,6 +9,7 @@
     <input id="oyuncu" placeholder="Oyuncu Adı" />
     <input id="puan" type="number" placeholder="Puan" />
     <button onclick="skorEkle()">Kaydet</button>
+    <p id="hata" style="color:red"></p>
     <ul id="liste"></ul>
 
     <script>
@@ -20,26 +21,52 @@
 
                     const liste = document.getElementById("liste");
                     liste.innerHTML = "";
-                    for (const s of tumSkorlar) {
-                        liste.innerHTML += `<li id="satir-${s.id}">${s.oyuncu}:${s.puan} <button onclick="guncelleAc(${s.id})">Güncelle</button> <button onclick="skorSil(${s.id})">Sil</button></li>`;
-                    }
-                }
+
+                for (const s of tumSkorlar) {
+                    const li = document.createElement("li");
+                    li.id = `satir-${s.id}`;
+
+                    const yazi = document.createElement("span");
+                    yazi.textContent = `${s.oyuncu}:${s.puan} `;
+
+                    const guncelleBtn = document.createElement("button");
+                    guncelleBtn.textContent = "Güncelle";
+                    guncelleBtn.onclick = () => guncelleAc(s.id);
+
+                    const silBtn = document.createElement("button");
+                    silBtn.textContent = "Sil";
+                    silBtn.onclick = () => skorSil(s.id);
+
+                    li.append(yazi, guncelleBtn, " ", silBtn);
+                    liste.appendChild(li);
+    }
+}
 
                 function kutulariTemizle() {
                     document.getElementById("oyuncu").value = "";
                     document.getElementById("puan").value = "";
                 }
 
+                function hataGoster(mesaj) { 
+                    document.getElementById("hata").textContent = mesaj;
+                }
+
                 async function skorEkle() {
                     const oyuncu = document.getElementById("oyuncu").value;
                     const puan = Number(document.getElementById("puan").value);
 
-                    await fetch("/skorlar", {
+                    const cevap = await fetch("/skorlar", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: 0, oyuncu: oyuncu, puan: puan })
                     });
 
+                    if (!cevap.ok) { 
+                        hataGoster(cevap.status === 400 ? await cevap.json() : "Bir hata oluştu.");
+                        return;
+                    }
+
+                    hataGoster("");
                     await skorlariGetir();
                     kutulariTemizle();
                 }
@@ -64,12 +91,18 @@
                     const oyuncu = document.getElementById(`yeniOyuncu-${id}`).value;
                     const puan = Number(document.getElementById(`yeniPuan-${id}`).value);
 
-                    await fetch(`/skorlar/${id}`, {
+                    const cevap = await fetch(`/skorlar/${id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: id, oyuncu: oyuncu, puan: puan })
                     });
 
+                    if (!cevap.ok) {
+                        hataGoster(cevap.status === 400 ? await cevap.json() : "Bir hata oluştu.");
+                        return;
+                    }
+
+                    hataGoster("");
                     await skorlariGetir();
                 }
 
