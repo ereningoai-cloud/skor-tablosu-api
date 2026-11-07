@@ -1,0 +1,42 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Skor Tablosu</title>
+</head>
+<body>
+    <h1>Skor Tablosu</h1>
+    <input id="oyuncu" placeholder="Oyuncu Adı" />
+    <input id="puan" type="number" placeholder="Puan" />
+    <button onclick="skorEkle()">Kaydet</button>
+    <ul id="liste"></ul>
+
+    <script>
+            async function skorlariGetir() {
+                const cevap = await fetch("/skorlar");
+                const skorlar = await cevap.json();
+
+                const liste = document.getElementById("liste");
+                liste.innerHTML = "";
+                for (const s of skorlar) {
+                    liste.innerHTML += `<li>${s.oyuncu}:${s.puan}</li>`;
+                }
+            }
+
+            async function skorEkle() {
+                const oyuncu = document.getElementById("oyuncu").value;
+                const puan = Number(document.getElementById("puan").value);
+
+                const cevap = await fetch("/skorlar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: 0, oyuncu: oyuncu, puan: puan })
+                });
+
+                skorlariGetir();
+            }
+
+            skorlariGetir();
+    </script>
+</body>
+</html>
