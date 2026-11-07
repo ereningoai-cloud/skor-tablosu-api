@@ -12,31 +12,68 @@
     <ul id="liste"></ul>
 
     <script>
-            async function skorlariGetir() {
-                const cevap = await fetch("/skorlar");
-                const skorlar = await cevap.json();
+                let tumSkorlar = [];
 
-                const liste = document.getElementById("liste");
-                liste.innerHTML = "";
-                for (const s of skorlar) {
-                    liste.innerHTML += `<li>${s.oyuncu}:${s.puan}</li>`;
+                async function skorlariGetir() {
+                    const cevap = await fetch("/skorlar", { cache: "no-store" });
+                    tumSkorlar = await cevap.json();
+
+                    const liste = document.getElementById("liste");
+                    liste.innerHTML = "";
+                    for (const s of tumSkorlar) {
+                        liste.innerHTML += `<li id="satir-${s.id}">${s.oyuncu}:${s.puan} <button onclick="guncelleAc(${s.id})">Güncelle</button> <button onclick="skorSil(${s.id})">Sil</button></li>`;
+                    }
                 }
-            }
 
-            async function skorEkle() {
-                const oyuncu = document.getElementById("oyuncu").value;
-                const puan = Number(document.getElementById("puan").value);
+                function kutulariTemizle() {
+                    document.getElementById("oyuncu").value = "";
+                    document.getElementById("puan").value = "";
+                }
 
-                const cevap = await fetch("/skorlar", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ id: 0, oyuncu: oyuncu, puan: puan })
-                });
+                async function skorEkle() {
+                    const oyuncu = document.getElementById("oyuncu").value;
+                    const puan = Number(document.getElementById("puan").value);
+
+                    await fetch("/skorlar", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: 0, oyuncu: oyuncu, puan: puan })
+                    });
+
+                    await skorlariGetir();
+                    kutulariTemizle();
+                }
+
+                async function skorSil(id) {
+                    await fetch(`/skorlar/${id}`, { method: "DELETE" });
+                    await skorlariGetir();
+                    kutulariTemizle();
+                }
+
+                function guncelleAc(id) {
+                    const skor = tumSkorlar.find(s => s.id === id);
+                    const satir = document.getElementById(`satir-${id}`);
+
+                    satir.innerHTML = `<input id="yeniOyuncu-${id}" /> <input id="yeniPuan-${id}" type="number" /> <button onclick="guncelleOnayla(${id})">Onayla</button> <button onclick="skorlariGetir()">İptal</button>`;
+
+                    document.getElementById(`yeniOyuncu-${id}`).value = skor.oyuncu;
+                    document.getElementById(`yeniPuan-${id}`).value = skor.puan;
+                }
+
+                async function guncelleOnayla(id) {
+                    const oyuncu = document.getElementById(`yeniOyuncu-${id}`).value;
+                    const puan = Number(document.getElementById(`yeniPuan-${id}`).value);
+
+                    await fetch(`/skorlar/${id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: id, oyuncu: oyuncu, puan: puan })
+                    });
+
+                    await skorlariGetir();
+                }
 
                 skorlariGetir();
-            }
-
-            skorlariGetir();
     </script>
 </body>
 </html>
