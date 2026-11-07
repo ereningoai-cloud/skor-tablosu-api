@@ -45,4 +45,3 @@ Not: Geliştirme aşamasında veritabanı her açılışta sıfırlanır.
 | POST | /skorlar | Yeni skor ekler |
 | PUT | /skorlar/{id} | Skoru günceller |
 | DELETE | /skorlar/{id} | Skoru siler |
-| DELETE | /skorlar | Tüm veritabanını sıfırlar (geliştirme için) |
