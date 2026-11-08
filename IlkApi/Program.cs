@@ -41,20 +41,6 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 
-static string? Dogrula(Skor skor)
-{
-    if (string.IsNullOrWhiteSpace(skor.Oyuncu))
-        return "Oyuncu adı boş olamaz.";
-
-    if (skor.Oyuncu.Length > 30)
-        return "Oyuncu adı en fazla 30 karakter olabilir.";
-
-    if (skor.Puan < 0)
-        return "Puan negatif olamaz.";
-
-    return null;
-}
-
 static int KullaniciIdAl(ClaimsPrincipal kullanici) =>
 int.Parse(kullanici.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
@@ -76,42 +62,6 @@ app.MapGet("/skorlar/en-yuksek", async (SkorDb db) =>
         .FirstOrDefaultAsync();
     return enYuksek is null ? Results.NotFound() : Results.Ok(enYuksek);
 });
-
-app.MapPost("/skorlar", async (Skor yeniSkor, SkorDb db, ClaimsPrincipal kullanici) =>
-{
-    var hata = Dogrula(yeniSkor);
-    if (hata is not null) return Results.BadRequest(hata);
-
-    var skor = new Skor(0, yeniSkor.Oyuncu.Trim(), yeniSkor.Puan, KullaniciIdAl(kullanici));
-    db.Skorlar.Add(skor);
-    await db.SaveChangesAsync();
-    return Results.Created($"/skorlar/{skor.Id}", skor);
-}).RequireAuthorization();
-
-app.MapDelete("/skorlar/{id}", async (int id, SkorDb db, ClaimsPrincipal kullanici) =>
-{
-    var skor = await db.Skorlar.FindAsync(id);
-    if (skor is null) return Results.NotFound();
-    if (skor.KullaniciId != KullaniciIdAl(kullanici)) return Results.Forbid();
-
-    db.Skorlar.Remove(skor);
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-}).RequireAuthorization();
-
-app.MapPut("/skorlar/{id}", async (int id, Skor guncelSkor, SkorDb db, ClaimsPrincipal kullanici) =>
-{
-    var hata = Dogrula(guncelSkor);
-    if (hata is not null) return Results.BadRequest(hata);
-
-    var skor = await db.Skorlar.FindAsync(id);
-    if (skor is null) return Results.NotFound();
-    if (skor.KullaniciId != KullaniciIdAl(kullanici)) return Results.Forbid();
-
-    db.Entry(skor).CurrentValues.SetValues(new Skor(id, guncelSkor.Oyuncu.Trim(), guncelSkor.Puan, skor.KullaniciId));
-    await db.SaveChangesAsync();
-    return Results.NoContent();
-}).RequireAuthorization();
 
 app.MapPost("/kayit", async (KayitIstegi istek, SkorDb db) =>
 {
@@ -143,7 +93,7 @@ app.MapPost("/giris", async (GirisIstegi istek, SkorDb db, IConfiguration config
 
     var kullaniciAdi = istek.KullaniciAdi.Trim();
     var kullanici = await db.Kullanicilar.FirstOrDefaultAsync(k => k.KullaniciAdi == kullaniciAdi);
-    if (kullanici is null) return Results.Unauthorized();
+    if (kullanici is null) return Results.NotFound("Böyle bir oyuncu bulunamadı.");
 
     var sonuc = new PasswordHasher<Kullanici>().VerifyHashedPassword(kullanici, kullanici.SifreHash, istek.Sifre);
     if (sonuc == PasswordVerificationResult.Failed) return Results.Unauthorized();
@@ -171,8 +121,33 @@ app.MapGet("/ben", (ClaimsPrincipal kullanici) => new
     Id = kullanici.FindFirstValue(ClaimTypes.NameIdentifier)
 }).RequireAuthorization();
 
+app.MapPost("/skorlar/gonder", async (PuanIstegi istek, SkorDb db, ClaimsPrincipal kullanici) =>
+{
+    if (istek.Puan < 0) return Results.BadRequest("Puan negatif olamaz.");
+
+    var kullaniciId = KullaniciIdAl(kullanici);
+    var ad = kullanici.Identity?.Name ?? "";
+
+    var mevcut = await db.Skorlar.FirstOrDefaultAsync(s => s.KullaniciId == kullaniciId);
+
+    if (mevcut is null)
+    {
+        db.Skorlar.Add(new Skor(0, ad, istek.Puan, kullaniciId, DateTime.UtcNow));
+        await db.SaveChangesAsync();
+        return Results.Ok(new { rekor = true, puan = istek.Puan });
+    }
+
+    if (istek.Puan <= mevcut.Puan)
+        return Results.Ok(new { rekor = false, puan = mevcut.Puan });
+
+    db.Entry(mevcut).CurrentValues.SetValues(new Skor(mevcut.Id, mevcut.Oyuncu, istek.Puan, kullaniciId, DateTime.UtcNow));
+    await db.SaveChangesAsync();
+    return Results.Ok(new { rekor = true, puan = istek.Puan });
+}).RequireAuthorization();
+
 app.Run();
 
-public record Skor(int Id, string Oyuncu, int Puan, int KullaniciId = 0);
+public record Skor(int Id, string Oyuncu, int Puan, int KullaniciId = 0, DateTime? Tarih = null);
+public record PuanIstegi(int Puan);
 public record KayitIstegi(string KullaniciAdi, string Sifre);
 public record GirisIstegi(string KullaniciAdi, string Sifre);

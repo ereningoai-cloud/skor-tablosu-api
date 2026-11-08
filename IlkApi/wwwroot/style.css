@@ -1,0 +1,197 @@
+﻿:root {
+    --ust: #1a1f59;
+    --alt: #732e99;
+    --kart: rgba(10, 8, 30, 0.55);
+    --yazi: #f4f2ff;
+    --soluk: #b7b2d6;
+    --vurgu: #ffd91a;
+    --hata: #ff6b6b;
+    --kenar: rgba(255, 255, 255, 0.12);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--yazi);
+    background: linear-gradient(to bottom, var(--ust), var(--alt));
+    background-attachment: fixed;
+}
+
+.kart {
+    width: 100%;
+    max-width: 760px;
+    height: fit-content;
+    padding: 32px;
+    background: var(--kart);
+    border: 1px solid var(--kenar);
+    border-radius: 20px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+h1 {
+    margin: 0 0 24px;
+    text-align: center;
+    font-size: 2.2rem;
+    letter-spacing: 0.04em;
+}
+
+/* Form elemanları */
+input, select {
+    font: inherit;
+    color: var(--yazi);
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--kenar);
+    border-radius: 10px;
+    padding: 10px 14px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+    input::placeholder {
+        color: var(--soluk);
+    }
+
+    input:focus, select:focus {
+        border-color: var(--vurgu);
+        box-shadow: 0 0 0 3px rgba(255, 217, 26, 0.25);
+    }
+
+    select option {
+        color: #111;
+    }
+
+button {
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    padding: 10px 18px;
+    color: #1b1440;
+    background: var(--vurgu);
+    transition: transform 0.1s, filter 0.15s;
+}
+
+    button:hover {
+        filter: brightness(1.08);
+    }
+
+    button:active {
+        transform: translateY(1px);
+    }
+
+/* İkincil butonlar: Kayıt ol, Çıkış, Yenile */
+#girisAlani button:nth-of-type(2),
+#kullaniciAlani button,
+#tabloAlani button {
+    color: var(--yazi);
+    background: transparent;
+    border-color: var(--kenar);
+}
+
+/* Giriş alanı */
+#girisAlani input {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+}
+
+#girisAlani button {
+    margin-right: 10px;
+}
+
+#kullaniciAlani {
+    margin-bottom: 8px;
+}
+
+#kullaniciYazi {
+    margin-right: 10px;
+    color: var(--soluk);
+}
+
+#hata {
+    min-height: 1.4em;
+    margin: 12px 0;
+    color: var(--hata);
+    font-weight: 600;
+}
+
+/* Tablo alanı */
+#tabloAlani > label {
+    margin-right: 8px;
+    color: var(--soluk);
+}
+
+#tabloAlani select {
+    margin-right: 10px;
+}
+
+#tablo {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    margin-top: 18px;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--kenar);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px 16px;
+    text-align: left;
+}
+
+th {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--soluk);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+td {
+    border-top: 1px solid var(--kenar);
+}
+
+tr:hover td {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+tr.ben td {
+    background: rgba(255, 217, 26, 0.16);
+    color: var(--vurgu);
+    font-weight: 700;
+}
+
+th:first-child, td:first-child {
+    width: 56px;
+    text-align: center;
+}
+
+td:nth-child(3) {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+@media (max-width: 520px) {
+    .kart {
+        padding: 20px;
+    }
+
+    th, td {
+        padding: 10px 8px;
+    }
+}

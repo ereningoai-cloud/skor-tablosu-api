@@ -3,232 +3,184 @@
 <head>
     <meta charset="UTF-8">
     <title>Skor Tablosu</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Skor Tablosu</h1>
+    <main class="kart">
+        <h1>Skor Tablosu</h1>
 
-    <div id="girisAlani">
-        <input id="kullaniciAdi" placeholder="Kullanıcı adı" />
-        <input id="sifre" type="password" placeholder="Şifre" />
-        <button onclick="girisYap()">Giriş</button>
-        <button onclick="kayitOl()">Kayıt ol</button>
-    </div>
+        <div id="girisAlani">
+            <input id="kullaniciAdi" placeholder="Kullanıcı adı" />
+            <input id="sifre" type="password" placeholder="Şifre" />
+            <button onclick="girisYap()">Giriş</button>
+            <button onclick="kayitOl()">Kayıt ol</button>
+        </div>
 
-    <div id="kullaniciAlani" style="display:none">
-        <span id="kullaniciYazi"></span>
-        <button onclick="cikisYap()">Çıkış</button>
-    </div>
+        <div id="kullaniciAlani" style="display:none">
+            <span id="kullaniciYazi"></span>
+            <button onclick="cikisYap()">Çıkış</button>
+        </div>
 
-    <div id="skorFormu" style="display:none">
-        <input id="oyuncu" placeholder="Oyuncu Adı" />
-        <input id="puan" type="number" placeholder="Puan" />
-        <button onclick="skorEkle()">Kaydet</button>
-    </div>
+        <p id="hata"></p>
 
-    <p id="hata" style="color:red"></p>
-    <ul id="liste"></ul>
-
+        <div id="tabloAlani" style="display:none">
+            <label for="siralama">Sıralama:</label>
+            <select id="siralama" onchange="tabloyuCiz()">
+                <option value="yeni">En yeni</option>
+                <option value="yuksek" selected>Yüksekten düşüğe</option>
+                <option value="dusuk">Düşükten yükseğe</option>
+            </select>
+            <button onclick="skorlariGetir()">Yenile</button>
+            <div id="tablo"></div>
+        </div>
+    </main>
     <script>
-                let tumSkorlar = [];
-                let token = sessionStorage.getItem("token");
-                let benimId = null;
+                                        let tumSkorlar = [];
+                                        let token = sessionStorage.getItem("token");
+                                        let benimId = null;
 
-                function yetkiBasligi() {
-                    return { "Content-Type": "application/json", "Authorization": `Bearer ${token}` };
-                }
+                                        function hataGoster(mesaj) {
+                                            document.getElementById("hata").textContent = mesaj;
+                                        }
 
-                function hataGoster(mesaj) {
-                    document.getElementById("hata").textContent = mesaj;
-                }
+                                        function arayuzuGuncelle(kullaniciAdi) {
+                                            const girisYapildi = benimId !== null;
+                                            document.getElementById("girisAlani").style.display = girisYapildi ? "none" : "block";
+                                            document.getElementById("kullaniciAlani").style.display = girisYapildi ? "block" : "none";
+                                            document.getElementById("tabloAlani").style.display = girisYapildi ? "block" : "none";
+                                            document.getElementById("kullaniciYazi").textContent = girisYapildi ? `Giriş yapan: ${kullaniciAdi} ` : "";
+                                        }
 
-                async function hataYonet(cevap) {
-                    if (cevap.status === 401) {
-                        cikisYap();
-                        hataGoster("Oturum geçersiz ya da süresi doldu, tekrar giriş yap.");
-                    } else if (cevap.status === 403) {
-                        hataGoster("Bu skor sana ait değil.");
-                    } else if (cevap.status === 400 || cevap.status === 409) {
-                        hataGoster(await cevap.json());
-                    } else {
-                        hataGoster("Bir hata oluştu.");
-                    }
-                }
+                                        async function oturumuKontrolEt() {
+                                            benimId = null;
+                                            let ad = "";
+                                            if (token) {
+                                                const cevap = await fetch("/ben", { headers: { "Authorization": `Bearer ${token}` } });
+                                                if (cevap.ok) {
+                                                    const ben = await cevap.json();
+                                                    benimId = Number(ben.id);
+                                                    ad = ben.ad;
+                                                } else {
+                                                    token = null;
+                                                    sessionStorage.removeItem("token");
+                                                }
+                                            }
+                                            arayuzuGuncelle(ad);
+                                        }
 
-                function arayuzuGuncelle(kullaniciAdi) {
-                    const girisYapildi = benimId !== null;
-                    document.getElementById("girisAlani").style.display = girisYapildi ? "none" : "block";
-                    document.getElementById("kullaniciAlani").style.display = girisYapildi ? "block" : "none";
-                    document.getElementById("skorFormu").style.display = girisYapildi ? "block" : "none";
-                    document.getElementById("kullaniciYazi").textContent = girisYapildi ? `Giriş yapan: ${kullaniciAdi} ` : "";
-                }
+                                        async function girisYap() {
+                                            const kullaniciAdi = document.getElementById("kullaniciAdi").value;
+                                            const sifre = document.getElementById("sifre").value;
 
-                async function oturumuKontrolEt() {
-                    benimId = null;
-                    let ad = "";
-                    if (token) {
-                        const cevap = await fetch("/ben", { headers: yetkiBasligi() });
-                        if (cevap.ok) {
-                            const ben = await cevap.json();
-                            benimId = Number(ben.id);
-                            ad = ben.ad;
-                        } else {
-                            token = null;
-                            sessionStorage.removeItem("token");
-                        }
-                    }
-                    arayuzuGuncelle(ad);
-                }
+                                            if (!kullaniciAdi.trim() || !sifre) {
+                                                hataGoster("Oyuncu adı ve şifre boş olamaz.");
+                                                return;
+                                            }
 
-                async function girisYap() {
-                    const kullaniciAdi = document.getElementById("kullaniciAdi").value;
-                    const sifre = document.getElementById("sifre").value;
+                                            const cevap = await fetch("/giris", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ kullaniciAdi: kullaniciAdi, sifre: sifre })
+                                            });
 
-                    const cevap = await fetch("/giris", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ kullaniciAdi: kullaniciAdi, sifre: sifre })
-                    });
+                                            if (!cevap.ok) {
+                                                if (cevap.status === 404) hataGoster("Böyle bir oyuncu bulunamadı.");
+                                                else if (cevap.status === 401) hataGoster("Şifre hatalı.");
+                                                else hataGoster("Bir hata oluştu.");
+                                                return;
+                                            }
 
-                    if (!cevap.ok) {
-                        hataGoster("Kullanıcı adı ya da şifre hatalı.");
-                        return;
-                    }
+                                            token = (await cevap.json()).token;
+                                            sessionStorage.setItem("token", token);
+                                            document.getElementById("sifre").value = "";
+                                            hataGoster("");
+                                            await oturumuKontrolEt();
+                                            await skorlariGetir();
+                                        }
 
-                    token = (await cevap.json()).token;
-                    sessionStorage.setItem("token", token);
-                    document.getElementById("sifre").value = "";
-                    hataGoster("");
-                    await oturumuKontrolEt();
-                    await skorlariGetir();
-                }
+                                        async function kayitOl() {
+                                            const kullaniciAdi = document.getElementById("kullaniciAdi").value;
+                                            const sifre = document.getElementById("sifre").value;
 
-                async function kayitOl() {
-                    const kullaniciAdi = document.getElementById("kullaniciAdi").value;
-                    const sifre = document.getElementById("sifre").value;
+                                            const cevap = await fetch("/kayit", {
+                                                method: "POST",
+                                                headers: { "Content-Type": "application/json" },
+                                                body: JSON.stringify({ kullaniciAdi: kullaniciAdi, sifre: sifre })
+                                            });
 
-                    const cevap = await fetch("/kayit", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ kullaniciAdi: kullaniciAdi, sifre: sifre })
-                    });
+                                            if (!cevap.ok) {
+                                                if (cevap.status === 409) hataGoster("Bu oyuncu adı kullanılmaktadır.");
+                                                else if (cevap.status === 400) hataGoster(await cevap.json());
+                                                else hataGoster("Bir hata oluştu.");
+                                                return;
+                                            }
 
-                    if (!cevap.ok) {
-                        await hataYonet(cevap);
-                        return;
-                    }
+                                            await girisYap();
+                                        }
 
-                    await girisYap();
-                }
+                                        function cikisYap() {
+                                            token = null;
+                                            benimId = null;
+                                            sessionStorage.removeItem("token");
+                                            arayuzuGuncelle("");
+                                        }
 
-                function cikisYap() {
-                    token = null;
-                    benimId = null;
-                    sessionStorage.removeItem("token");
-                    arayuzuGuncelle("");
-                    skorlariGetir();
-                }
+                                        function zaman(s) {
+                                            return s.tarih ? new Date(tarihDuzelt(s.tarih)).getTime() : 0;
+                                        }
 
-                async function skorlariGetir() {
-                    const cevap = await fetch("/skorlar", { cache: "no-store" });
-                    tumSkorlar = await cevap.json();
+                                        function tarihDuzelt(t) {
+                                            return /Z|[+-]\d{2}:\d{2}$/.test(t) ? t : t + "Z";
+                                        }
 
-                    const liste = document.getElementById("liste");
-                    liste.innerHTML = "";
+                                        async function skorlariGetir() {
+                                            const cevap = await fetch("/skorlar", { cache: "no-store" });
+                                            tumSkorlar = await cevap.json();
+                                            tabloyuCiz();
+                                        }
 
-                    for (const s of tumSkorlar) {
-                        const li = document.createElement("li");
-                        li.id = `satir-${s.id}`;
+                                        function tabloyuCiz() {
+                                            const siralama = document.getElementById("siralama").value;
+                                            const liste = [...tumSkorlar];
 
-                        const yazi = document.createElement("span");
-                        yazi.textContent = `${s.oyuncu}:${s.puan} `;
-                        li.append(yazi);
+                                            if (siralama === "yeni") liste.sort((a, b) => zaman(b) - zaman(a));
+                                            else if (siralama === "yuksek") liste.sort((a, b) => b.puan - a.puan || zaman(b) - zaman(a));
+                                            else liste.sort((a, b) => a.puan - b.puan || zaman(b) - zaman(a));
 
-                        if (benimId !== null && s.kullaniciId === benimId) {
-                            const guncelleBtn = document.createElement("button");
-                            guncelleBtn.textContent = "Güncelle";
-                            guncelleBtn.onclick = () => guncelleAc(s.id);
+                                            const kap = document.getElementById("tablo");
+                                            kap.innerHTML = "";
 
-                            const silBtn = document.createElement("button");
-                            silBtn.textContent = "Sil";
-                            silBtn.onclick = () => skorSil(s.id);
+                                            if (liste.length === 0) {
+                                                kap.textContent = "Henüz skor yok. Oyundan ilk skoru sen yap!";
+                                                return;
+                                            }
 
-                            li.append(guncelleBtn, " ", silBtn);
-                        }
+                                            const tablo = document.createElement("table");
 
-                        liste.appendChild(li);
-                    }
-                }
+                                            const baslik = tablo.insertRow();
+                                            for (const ad of ["#", "Oyuncu", "Puan", "Tarih"]) {
+                                                const th = document.createElement("th");
+                                                th.textContent = ad;
+                                                baslik.appendChild(th);
+                                            }
 
-                function kutulariTemizle() {
-                    document.getElementById("oyuncu").value = "";
-                    document.getElementById("puan").value = "";
-                }
+                                            liste.forEach((s, i) => {
+                                                const satir = tablo.insertRow();
+                                                if (s.kullaniciId === benimId) satir.className = "ben";
 
-                async function skorEkle() {
-                    const oyuncu = document.getElementById("oyuncu").value;
-                    const puan = Number(document.getElementById("puan").value);
+                                                satir.insertCell().textContent = i + 1;
+                                                satir.insertCell().textContent = s.kullaniciId === benimId ? `${s.oyuncu} (sen)` : s.oyuncu;
+                                                satir.insertCell().textContent = s.puan;
+                                                satir.insertCell().textContent = s.tarih ? new Date(tarihDuzelt(s.tarih)).toLocaleString("tr-TR") : "-";
+                                            });
 
-                    const cevap = await fetch("/skorlar", {
-                        method: "POST",
-                        headers: yetkiBasligi(),
-                        body: JSON.stringify({ id: 0, oyuncu: oyuncu, puan: puan })
-                    });
+                                            kap.appendChild(tablo);
+                                        }
 
-                    if (!cevap.ok) {
-                        await hataYonet(cevap);
-                        return;
-                    }
-
-                    hataGoster("");
-                    await skorlariGetir();
-                    kutulariTemizle();
-                }
-
-                async function skorSil(id) {
-                    const cevap = await fetch(`/skorlar/${id}`, { method: "DELETE", headers: yetkiBasligi() });
-
-                    if (!cevap.ok) {
-                        await hataYonet(cevap);
-                        return;
-                    }
-
-                    hataGoster("");
-                    await skorlariGetir();
-                }
-
-                function guncelleAc(id) {
-                    const skor = tumSkorlar.find(s => s.id === id);
-                    const satir = document.getElementById(`satir-${id}`);
-
-                    satir.innerHTML = `<input id="yeniOyuncu-${id}" /> <input id="yeniPuan-${id}" type="number" /> <button onclick="guncelleOnayla(${id})">Onayla</button> <button onclick="skorlariGetir()">İptal</button>`;
-
-                    document.getElementById(`yeniOyuncu-${id}`).value = skor.oyuncu;
-                    document.getElementById(`yeniPuan-${id}`).value = skor.puan;
-                }
-
-                async function guncelleOnayla(id) {
-                    const oyuncu = document.getElementById(`yeniOyuncu-${id}`).value;
-                    const puan = Number(document.getElementById(`yeniPuan-${id}`).value);
-
-                    const cevap = await fetch(`/skorlar/${id}`, {
-                        method: "PUT",
-                        headers: yetkiBasligi(),
-                        body: JSON.stringify({ id: id, oyuncu: oyuncu, puan: puan })
-                    });
-
-                    if (!cevap.ok) {
-                        await hataYonet(cevap);
-                        return;
-                    }
-
-                    hataGoster("");
-                    await skorlariGetir();
-                }
-
-                (async () => {
-                    await oturumuKontrolEt();
-                    await skorlariGetir();
-                })();
+                                        (async () => {
+                                            await oturumuKontrolEt();
+                                            if (benimId !== null) await skorlariGetir();
+                                        })();
     </script>
 </body>
 </html>
