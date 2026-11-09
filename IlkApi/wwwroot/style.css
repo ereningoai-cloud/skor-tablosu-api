@@ -1,12 +1,14 @@
 ﻿:root {
-    --ust: #1a1f59;
-    --alt: #732e99;
-    --kart: rgba(10, 8, 30, 0.55);
-    --yazi: #f4f2ff;
-    --soluk: #b7b2d6;
-    --vurgu: #ffd91a;
-    --hata: #ff6b6b;
-    --kenar: rgba(255, 255, 255, 0.12);
+    --mavi: #4b6cb7;
+    --lacivert: #182848;
+    --kart: rgba(10, 20, 45, 0.6);
+    --yazi: #eef3ff;
+    --soluk: #a9b8dc;
+    --vurgu: #ffc94d;
+    --vurgu-rgb: 255, 201, 77;
+    --koyu-yazi: #0f1c38;
+    --hata: #ff7b7b;
+    --kenar: rgba(255, 255, 255, 0.14);
 }
 
 * {
@@ -21,7 +23,8 @@ body {
     padding: 40px 16px;
     font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
     color: var(--yazi);
-    background: linear-gradient(to bottom, var(--ust), var(--alt));
+    background: #4b6cb7; /* eski tarayıcılar için yedek */
+    background: linear-gradient(to left, var(--lacivert), var(--mavi));
     background-attachment: fixed;
 }
 
@@ -62,7 +65,7 @@ input, select {
 
     input:focus, select:focus {
         border-color: var(--vurgu);
-        box-shadow: 0 0 0 3px rgba(255, 217, 26, 0.25);
+        box-shadow: 0 0 0 3px rgba(var(--vurgu-rgb), 0.25);
     }
 
     select option {
@@ -76,7 +79,7 @@ button {
     border: 1px solid transparent;
     border-radius: 10px;
     padding: 10px 18px;
-    color: #1b1440;
+    color: var(--koyu-yazi);
     background: var(--vurgu);
     transition: transform 0.1s, filter 0.15s;
 }
@@ -171,7 +174,7 @@ tr:hover td {
 }
 
 tr.ben td {
-    background: rgba(255, 217, 26, 0.16);
+    background: rgba(var(--vurgu-rgb), 0.16);
     color: var(--vurgu);
     font-weight: 700;
 }
@@ -193,5 +196,36 @@ td:nth-child(3) {
 
     th, td {
         padding: 10px 8px;
+    }
+}
+
+svg.madalya {
+    display: block;
+    width: 35px;
+    height: 48px;
+    margin: 0 auto;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+/* Satır giriş animasyonu */
+@keyframes satirGir {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+tr.giris {
+    animation: satirGir 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    tr.giris {
+        animation: none;
     }
 }

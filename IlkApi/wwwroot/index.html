@@ -139,43 +139,97 @@
                                             tabloyuCiz();
                                         }
 
-                                        function tabloyuCiz() {
-                                            const siralama = document.getElementById("siralama").value;
-                                            const liste = [...tumSkorlar];
+const MADALYALAR = [
+    { dis: ["#fff2a8", "#f5c542", "#b88a12"], ic: ["#ffe98a", "#f5c542", "#c9961a"], yazi: "#6b4a00" },
+    { dis: ["#ffffff", "#c9d2de", "#8793a5"], ic: ["#f4f7fb", "#cfd7e3", "#98a4b6"], yazi: "#4a5568" },
+    { dis: ["#f0b98a", "#cd7f32", "#8a4f1c"], ic: ["#e8a56d", "#c77a35", "#96592a"], yazi: "#3d1f08" }
+];
 
-                                            if (siralama === "yeni") liste.sort((a, b) => zaman(b) - zaman(a));
-                                            else if (siralama === "yuksek") liste.sort((a, b) => b.puan - a.puan || zaman(b) - zaman(a));
-                                            else liste.sort((a, b) => a.puan - b.puan || zaman(b) - zaman(a));
+function madalyaSvg(sira) {
+    const m = MADALYALAR[sira - 1];
+    const d = `m${sira}d`;
+    const i = `m${sira}i`;
 
-                                            const kap = document.getElementById("tablo");
-                                            kap.innerHTML = "";
+    return `<svg class="madalya" viewBox="0 0 64 88" role="img" aria-label="${sira}. sıra">
+        <defs>
+            <linearGradient id="${d}" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="${m.dis[0]}"/>
+                <stop offset="0.5" stop-color="${m.dis[1]}"/>
+                <stop offset="1" stop-color="${m.dis[2]}"/>
+            </linearGradient>
+            <linearGradient id="${i}" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="${m.ic[0]}"/>
+                <stop offset="0.5" stop-color="${m.ic[1]}"/>
+                <stop offset="1" stop-color="${m.ic[2]}"/>
+            </linearGradient>
+        </defs>
+        <path d="M46 44 L30 50 L34 86 L42 78 L52 84 Z" fill="#b83232"/>
+        <path d="M18 44 L34 50 L30 86 L22 78 L12 84 Z" fill="#d64545"/>
+        <circle cx="32" cy="30" r="25" fill="url(#${d})" stroke="url(#${d})"
+                stroke-width="7" stroke-dasharray="0.01 9.8075" stroke-linecap="round"/>
+        <circle cx="32" cy="30" r="20" fill="url(#${i})" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+        <path d="M16.96 24.53 A16 16 0 0 1 29.22 14.24" fill="none" stroke="#fff"
+              stroke-opacity="0.55" stroke-width="2" stroke-linecap="round"/>
+        <text x="32" y="39" text-anchor="middle" font-size="26" font-weight="800"
+              font-family="Segoe UI, Arial, sans-serif" fill="${m.yazi}">${sira}</text>
+    </svg>`;
+}
 
-                                            if (liste.length === 0) {
-                                                kap.textContent = "Henüz skor yok. Oyundan ilk skoru sen yap!";
-                                                return;
-                                            }
+function siraHaritasi() {
+    const sirali = [...tumSkorlar].sort((a, b) => b.puan - a.puan || zaman(b) - zaman(a));
+    const harita = new Map();
+    sirali.forEach((s, i) => harita.set(s.id, i + 1));
+    return harita;
+}
 
-                                            const tablo = document.createElement("table");
+function tabloyuCiz() {
+    const siralama = document.getElementById("siralama").value;
+    const liste = [...tumSkorlar];
 
-                                            const baslik = tablo.insertRow();
-                                            for (const ad of ["#", "Oyuncu", "Puan", "Tarih"]) {
-                                                const th = document.createElement("th");
-                                                th.textContent = ad;
-                                                baslik.appendChild(th);
-                                            }
+    if (siralama === "yeni") liste.sort((a, b) => zaman(b) - zaman(a));
+    else if (siralama === "yuksek") liste.sort((a, b) => b.puan - a.puan || zaman(b) - zaman(a));
+    else liste.sort((a, b) => a.puan - b.puan || zaman(b) - zaman(a));
 
-                                            liste.forEach((s, i) => {
-                                                const satir = tablo.insertRow();
-                                                if (s.kullaniciId === benimId) satir.className = "ben";
+    const kap = document.getElementById("tablo");
+    kap.innerHTML = "";
 
-                                                satir.insertCell().textContent = i + 1;
-                                                satir.insertCell().textContent = s.kullaniciId === benimId ? `${s.oyuncu} (sen)` : s.oyuncu;
-                                                satir.insertCell().textContent = s.puan;
-                                                satir.insertCell().textContent = s.tarih ? new Date(tarihDuzelt(s.tarih)).toLocaleString("tr-TR") : "-";
-                                            });
+    if (liste.length === 0) {
+        kap.textContent = "Henüz skor yok. Oyundan ilk skoru sen yap!";
+        return;
+    }
 
-                                            kap.appendChild(tablo);
-                                        }
+    const siralar = siraHaritasi();
+
+    const tablo = document.createElement("table");
+
+    const baslik = tablo.insertRow();
+    for (const ad of ["#", "Oyuncu", "Puan", "Tarih"]) {
+        const th = document.createElement("th");
+        th.textContent = ad;
+        baslik.appendChild(th);
+    }
+
+    liste.forEach((s, i) => {
+        const satir = tablo.insertRow();
+        satir.classList.add("giris");
+        satir.style.animationDelay = `${i * 40}ms`;
+        if (s.kullaniciId === benimId) satir.classList.add("ben");
+
+        const sira = siralar.get(s.id);
+        const siraHucre = satir.insertCell();
+        if (sira <= 3) {
+            siraHucre.innerHTML = madalyaSvg(sira);
+        } else {
+            siraHucre.textContent = sira;
+        }
+
+        satir.insertCell().textContent = s.kullaniciId === benimId ? `${s.oyuncu} (sen)` : s.oyuncu;
+        satir.insertCell().textContent = s.puan;
+        satir.insertCell().textContent = s.tarih ? new Date(tarihDuzelt(s.tarih)).toLocaleString("tr-TR") : "-";
+    });
+
+    kap.appendChild(tablo);
+}
 
                                         (async () => {
                                             await oturumuKontrolEt();
