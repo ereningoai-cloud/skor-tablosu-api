@@ -31,6 +31,7 @@
                 <option value="dusuk">Düşükten yükseğe</option>
             </select>
             <button onclick="skorlariGetir()">Yenile</button>
+            <p class="not">Bu tabloda örnek oyuncular gösteriliyor.</p>
             <div id="tablo"></div>
         </div>
     </main>
@@ -194,7 +195,7 @@ function tabloyuCiz() {
     kap.innerHTML = "";
 
     if (liste.length === 0) {
-        kap.textContent = "Henüz skor yok. Oyundan ilk skoru sen yap!";
+        kap.textContent = "Henüz skor yok.";
         return;
     }
 

@@ -7,6 +7,8 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddDbContext<SkorDb>(options =>
@@ -28,12 +30,44 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+static void OrnekVeriEkle(SkorDb db)
+{
+    if (db.Kullanicilar.Any() || db.Skorlar.Any()) return;
+
+    var ornekler = new (string Ad, int Puan, int SaatOnce)[]
+    {
+        ("BalonAvcisi", 880, 2),
+        ("NisanciCan", 720, 30),
+        ("Zeynep", 640, 5),
+        ("Mert", 510, 75),
+        ("Selin", 455, 12),
+        ("Kaan", 390, 150),
+        ("Deniz", 310, 48),
+        ("Pati", 205, 200)
+    };
+
+    var hasher = new PasswordHasher<Kullanici>();
+    var simdi = DateTime.UtcNow;
+
+    foreach (var (ad, puan, saatOnce) in ornekler)
+    {
+        var kullanici = new Kullanici { KullaniciAdi = ad };
+        kullanici.SifreHash = hasher.HashPassword(kullanici, Guid.NewGuid().ToString("N"));
+        db.Kullanicilar.Add(kullanici);
+        db.SaveChanges();
+
+        db.Skorlar.Add(new Skor(0, ad, puan, kullanici.Id, simdi.AddHours(-saatOnce)));
+        db.SaveChanges();
+    }
+}
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<SkorDb>();
     db.Database.EnsureCreated();
+    OrnekVeriEkle(db);
 }
 
 app.UseDefaultFiles();
@@ -109,16 +143,19 @@ app.MapPost("/giris", async (GirisIstegi istek, SkorDb db, IConfiguration config
 
     var token = new JwtSecurityToken(
         claims: claims,
-        expires: DateTime.UtcNow.AddHours(2),
+        expires: DateTime.UtcNow.AddDays(30),
         signingCredentials: imza);
 
     return Results.Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
 });
 
-app.MapGet("/ben", (ClaimsPrincipal kullanici) => new
+app.MapGet("/ben", async (ClaimsPrincipal kullanici, SkorDb db) =>
 {
-    Ad = kullanici.Identity?.Name,
-    Id = kullanici.FindFirstValue(ClaimTypes.NameIdentifier)
+    var id = KullaniciIdAl(kullanici);
+    var kayit = await db.Kullanicilar.FindAsync(id);
+    if (kayit is null) return Results.Unauthorized();
+
+    return Results.Ok(new { Ad = kayit.KullaniciAdi, Id = id.ToString() });
 }).RequireAuthorization();
 
 app.MapPost("/skorlar/gonder", async (PuanIstegi istek, SkorDb db, ClaimsPrincipal kullanici) =>
